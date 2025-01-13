@@ -11,6 +11,7 @@ bun dev
 ```
 
 ## DOCS
+```
 ├── src/
 │   ├── components/     # Chứa các thành phần giao diện dùng chung
 │   │   ├── Header/     # Header component
@@ -37,3 +38,4 @@ bun dev
 │   ├── types/          # Các định nghĩa TypeScript
 │       ├── user.ts
 │       └── api.ts
+```
