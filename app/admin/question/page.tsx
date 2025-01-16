@@ -1,67 +1,185 @@
 'use client';
-import adminMiddleware from '@/src/hooks/adminMiddleware';
-import questionData from '@/public/list';
+
+import questionData from '@/public/data';
 import { useState } from 'react';
+import { Question, QuestionData, SelectedQuestionData } from '@/src/types/question';
 
 const QuestionPage = () => {
-    const questions = questionData;
-    const [selectedData, setSelectedData] = useState({
-        index: -1,
+    const [language, setLanguage] = useState<'en' | 'vi'>('en');
+    const initialQuestions = (questionData as QuestionData)[language];
+    const [questions, setQuestions] = useState<Question[]>(initialQuestions);
+    const [selectedData, setSelectedData] = useState<SelectedQuestionData>({
+        qIndex: -1,
+        aIndex: -1,
         value: ''
     });
+    const [isEditing, setIsEditing] = useState(false);
 
-    const selectDataType = (event: any, index: number, value: string) => {
+    const convertLanguage = (event: any, lang: 'en' | 'vi') => {
         event.preventDefault();
-        alert(`Selected ${index}: ${value}`);
-        setSelectedData({
-            index: index,
-            value: value
-        });
+
+        if (selectedData.qIndex !== -1) {
+            alert('Please update the data before changing the language');
+        } else {
+            setLanguage(lang);
+        }
+    }
+
+    const selectDataType = (event: any, qIndex: number, aIndex: number, value: string) => {
+        event.preventDefault();
+
+        if (isEditing) {
+            setSelectedData({
+                qIndex: qIndex,
+                aIndex: aIndex,
+                value: value
+            });
+        } else {
+            if (aIndex !== -1) {
+                if (aIndex !== questions[qIndex].correctAnswer) {
+                    const updatedQuestions = questions.map((question, index) => {
+                        if (index === qIndex) {
+                            return { ...question, correctAnswer: aIndex };
+                        }
+                        return question;
+                    });
+                    setQuestions(updatedQuestions);
+
+                    console.log(questionData);
+                }
+            }
+        }
     }
 
     const updateData = () => {
+        const updatedQuestions = questions.map((q, qIndex) => {
+            if (qIndex === selectedData.qIndex) {
+                if (selectedData.aIndex === -1) {
+                    return { ...q, question: selectedData.value };
+                } else if (selectedData.aIndex === -2) {
+                    return { ...q, explanation: selectedData.value };
+                } else if (selectedData.aIndex >= 0) {
+                    const updatedAnswers = q.answers.map((answer: string, aIndex: number) =>
+                        aIndex === selectedData.aIndex ? selectedData.value : answer
+                    );
+                    return { ...q, answers: updatedAnswers };
+                }
+            }
+            return q;
+        });
+
+        // (questionData as QuestionData)[language] = updatedQuestions;
+        
+        setQuestions(updatedQuestions);
+
         setSelectedData({
-            index: -1,
+            qIndex: -1,
+            aIndex: -1,
             value: ''
         });
-        alert('Update button clicked!');
+    }
+
+    const cancelData = () => {
+        setSelectedData({
+            qIndex: -1,
+            aIndex: -1,
+            value: ''
+        });
+    }
+
+    const edit = () => {
+        if (isEditing) {
+            setSelectedData({
+                qIndex: -1,
+                aIndex: -1,
+                value: ''
+            });
+        }
+
+        setIsEditing(!isEditing);
     }
 
     return (
-        <div style={containerStyle}>
-            <h1 style={titleStyle}>Questions</h1>
-            {questions.map((q, qIndex) => (
-                <div key={q.id} style={questionContainerStyle}>
-                    <div style={questionStyle}>
-                        <a href="#" onClick={(e) => selectDataType(e, qIndex, q.question)}>
+        <div className='wrapper'>
+            <h1 className='title'>
+                Questions
+            </h1>
+            <a href="#" className='btn btn-default' onClick={(e) => convertLanguage(e, language == 'en' ? 'vi' : 'en')}>
+                {language == 'en' ? 'VI' : 'EN'}
+            </a>
+            <button onClick={() => edit()} className='btn btn-primary'>
+                {isEditing ? 'Stop Editing' : 'Edit'}
+            </button>
+            <br />
+            <br />
+            {questions.map((q: any, qIndex: number) => (
+                <div key={q.id} className='question-container'>
+                    <div className='question'>
+                        <a href="#" onClick={(e) => selectDataType(e, qIndex, -1, q.question)} style={{ display: selectedData.qIndex === qIndex && selectedData.aIndex === -1 ? 'none' : 'block' }}>
                             <strong>Question {qIndex + 1}:</strong> {q.question}
                         </a>
+                        {selectedData.qIndex === qIndex && selectedData.aIndex === -1 && (
+                            <input
+                                type="text"
+                                value={selectedData.value}
+                                onChange={(e) => selectDataType(e, qIndex, -1, e.target.value)}
+                                placeholder="Type your answer here"
+                            />
+                        )}
                     </div>
-                    <div style={answersStyle}>
-                        <ul style={ulStyle}>
-                            {q.answers.map((answer, index) => (
-                                <a href="#" key={index} onClick={(e) => selectDataType(e, index, answer)}>
-                                    <li
-                                        style={{
-                                            ...liStyle,
-                                            color: index === q.correctAnswer ? 'red' : index === q.selectedAnswer ? 'orange' : 'black',
-                                            fontWeight: index === q.correctAnswer ? 'bold' : 'normal'
-                                        }}
-                                    >
-                                        {index + 1}. {answer}
-                                    </li>
-                                </a>
+                    <div className='answers'>
+                        <ul className='answers-list'>
+                            {q.answers.map((answer: any, aIndex: number) => (
+                                <div key={aIndex}>
+                                    {selectedData.qIndex === qIndex && selectedData.aIndex === aIndex ? (
+                                        <input
+                                            type="text"
+                                            value={selectedData.value}
+                                            onChange={(e) => selectDataType(e, qIndex, aIndex, e.target.value)}
+                                            placeholder="Type your answer here"
+                                        />
+                                    ) : (
+                                        <a href="#" onClick={(e) => selectDataType(e, qIndex, aIndex, answer)}>
+                                            <li
+                                                className={`answer-item ${aIndex === q.correctAnswer ? 'correct' : aIndex === q.selectedAnswer ? 'selected' : ''}`}
+                                                style={{
+                                                    color: aIndex === q.correctAnswer ? 'red' : aIndex === q.selectedAnswer ? 'orange' : 'inherit',
+                                                    fontWeight: aIndex === q.correctAnswer || aIndex === q.selectedAnswer ? 'bold' : 'normal'
+                                                }}
+                                            >
+                                                {aIndex + 1}. {answer}
+                                            </li>
+                                        </a>
+                                    )}
+                                </div>
                             ))}
                         </ul>
                     </div>
-                    <div style={explanationStyle}>
-                        <strong>Explanation:</strong> <a href="#" onClick={(e) => selectDataType(e, qIndex, q.explanation)}>{q.explanation}</a>
+                    <div className='explanation'>
+                        <strong>Explanation:</strong>
+                        <a href="#" onClick={(e) => selectDataType(e, qIndex, -2, q.explanation)} style={{ display: selectedData.qIndex === qIndex && selectedData.aIndex === -2 ? 'none' : 'block' }}>
+                            {q.explanation}
+                        </a>
+                        {selectedData.qIndex === qIndex && selectedData.aIndex === -2 && (
+                            <input
+                                type="text"
+                                value={selectedData.value}
+                                onChange={(e) => selectDataType(e, qIndex, -2, e.target.value)}
+                                placeholder="Type your explanation here"
+                            />
+                        )}
                     </div>
                     {
-                        selectedData.index == qIndex ?
-                            <button onClick={updateData} style={buttonStyle}>
-                                Update
-                            </button> : null
+                        selectedData.qIndex == qIndex ?
+                            <div>
+                                <button onClick={updateData} className='btn btn-primary'>
+                                    Update
+                                </button>
+                                <button onClick={cancelData} className='btn btn-'>
+                                    Cancel
+                                </button>
+                            </div>
+                            : null
                     }
                 </div>
             ))}
@@ -69,54 +187,4 @@ const QuestionPage = () => {
     );
 }
 
-const containerStyle: React.CSSProperties = {
-    padding: '20px',
-    fontFamily: 'Arial, sans-serif'
-};
-
-const titleStyle: React.CSSProperties = {
-    textAlign: 'center',
-    marginBottom: '20px'
-};
-
-const questionContainerStyle: React.CSSProperties = {
-    border: '1px solid #ddd',
-    padding: '10px',
-    marginBottom: '20px',
-    borderRadius: '5px',
-    backgroundColor: '#f9f9f9'
-};
-
-const questionStyle: React.CSSProperties = {
-    marginBottom: '10px'
-};
-
-const answersStyle: React.CSSProperties = {
-    marginBottom: '10px'
-};
-
-const explanationStyle: React.CSSProperties = {
-    marginBottom: '10px'
-};
-
-const ulStyle: React.CSSProperties = {
-    listStyleType: 'none',
-    padding: 0,
-    margin: 0
-};
-
-const liStyle: React.CSSProperties = {
-    marginBottom: '4px'
-};
-
-const buttonStyle: React.CSSProperties = {
-    padding: '5px 15px',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    border: 'none',
-    borderRadius: '5px',
-    cursor: 'pointer',
-    fontSize: '14px'
-};
-
-export default adminMiddleware(QuestionPage);
+export default QuestionPage;

@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 
 const Header: React.FC = () => {
     const router = useRouter();
-    const pathname = usePathname();
 
     const logout = (event :any) => {
         event.preventDefault();
@@ -14,10 +13,6 @@ const Header: React.FC = () => {
         Cookies.remove('admin_info');
         router.push('/admin/login');
     };
-
-    if (pathname === '/admin/login') {
-        return null;
-    }
 
     return (
         <header style={headerStyle}>
