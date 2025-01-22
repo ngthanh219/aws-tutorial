@@ -70,19 +70,33 @@ body {
 
 .btn-primary {
     background-color: #007bff;
-    background-color: #007bff;
     color: #fff;
     transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
 }
 
 .btn-default {
     background-color: #f9f9f9;
     color: #333;
     transition: background-color 0.3s;
+    border: 1px solid #ddd;
 }
 
-.btn-primary:hover {
-    background-color: #0056b3;
+.btn-default:hover {
+    background-color: #f1f1f1;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+    transition: background-color 0.3s;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
 }
 
 input[type="text"],

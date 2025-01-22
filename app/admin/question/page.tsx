@@ -3,8 +3,11 @@
 import { useState, useEffect } from 'react';
 import questionService from '@/src/services/questionService';
 import { Question, SelectedQuestionData } from '@/src/types/question';
+import SpinningLoading from '@/src/components/ui/loading/spinningLoading';
 
 const QuestionPage = () => {
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [language, setLanguage] = useState<'en' | 'vi'>('en');
     const [questions, setQuestions] = useState<Question[]>([]);
     const [selectedData, setSelectedData] = useState<SelectedQuestionData>({
@@ -12,28 +15,26 @@ const QuestionPage = () => {
         aIndex: -1,
         value: ''
     });
-    const [isEditing, setIsEditing] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [isEditText, setIsEditText] = useState(false);
+    const [isEditAnswer, setIsEditAnswer] = useState(false);
 
     useEffect(() => {
-        const fetchQuestions = async () => {
-            setLoading(true);
-            setError(null);
-
-            try {
-                const response = await questionService.getQuestions(language);
-                setQuestions(response);
-            } catch (error) {
-                console.error('Error fetching questions:', error);
-                setError('Failed to fetch questions. Please try again later.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchQuestions();
+        setLoading(true);
+        setError(null);
+        getQuestions();
     }, [language]);
+
+    const getQuestions = async () => {
+        try {
+            const response = await questionService.getQuestions(language);
+            setQuestions(response);
+        } catch (error) {
+            console.error('Error fetching questions:', error);
+            setError('Failed to fetch questions. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const convertLanguage = (event: React.MouseEvent, lang: 'en' | 'vi') => {
         event.preventDefault();
@@ -53,24 +54,22 @@ const QuestionPage = () => {
     ) => {
         event.preventDefault();
 
-        if (isEditing) {
+        if (isEditText) {
             setSelectedData({
                 qIndex: qIndex,
                 aIndex: aIndex,
                 value: value
             });
-        } else {
-            if (aIndex !== -1) {
-                if (aIndex !== questions[qIndex].correctAnswer) {
-                    const updatedQuestions = questions.map((question, index) => {
-                        if (index === qIndex) {
-                            return { ...question, correctAnswer: aIndex };
-                        }
-                        return question;
-                    });
-                    setQuestions(updatedQuestions);
+        }
+        
+        if (isEditAnswer && aIndex !== -1 && aIndex !== questions[qIndex].correctAnswer) {
+            const updatedQuestions = questions.map((question, index) => {
+                if (index === qIndex) {
+                    return { ...question, correctAnswer: aIndex };
                 }
-            }
+                return question;
+            });
+            setQuestions(updatedQuestions);
         }
     };
 
@@ -108,8 +107,16 @@ const QuestionPage = () => {
         });
     };
 
-    const edit = () => {
-        if (isEditing) {
+    const editAnswer = () => {
+        setIsEditAnswer(!isEditAnswer);
+        
+        if (isEditText) {
+            setIsEditText(false);
+        }
+    };
+
+    const editText = () => {
+        if (isEditText) {
             setSelectedData({
                 qIndex: -1,
                 aIndex: -1,
@@ -117,27 +124,43 @@ const QuestionPage = () => {
             });
         }
 
-        setIsEditing(!isEditing);
+        setIsEditText(!isEditText);
+        
+        if (isEditAnswer) {
+            setIsEditAnswer(false);
+        }
     };
 
-    if (loading) return <div>Loading questions...</div>;
+    if (loading) return <SpinningLoading />;
     if (error) return <div>{error}</div>;
 
     return (
         <div className='wrapper'>
             <h1 className='title'>Questions</h1>
-            <a
-                href="#"
-                className='btn btn-default'
+            <button
+                className='btn btn-default mr-2'
                 onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}
             >
                 {language === 'en' ? 'VI' : 'EN'}
-            </a>
-            <button onClick={() => edit()} className='btn btn-primary'>
-                {isEditing ? 'Stop Editing' : 'Edit'}
             </button>
+            
+            <button 
+                onClick={() => editAnswer()} 
+                className={`btn btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`}
+            >
+                {isEditAnswer ? 'Stop edit answer' : 'Edit answer'}
+            </button>
+
+            <button
+                onClick={() => editText()}
+                className={`btn btn-${isEditText ? 'danger' : 'primary'} mr-2`}
+            >
+                {isEditText ? 'Stop edit text' : 'Edit text'}
+            </button>
+
             <br />
             <br />
+
             {questions.map((q, qIndex) => (
                 <div key={q.id} className='question-container'>
                     <div className='question'>
