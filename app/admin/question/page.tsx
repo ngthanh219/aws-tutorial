@@ -36,6 +36,18 @@ const QuestionPage = () => {
         }
     }
 
+    const updateAnswer = async (request: any, callback: Function) => {
+        try {
+            const response = await questionService.updateAnswer(request);
+            callback(response);
+        } catch (error) {
+            console.error('Error update answer:', error);
+            setError('Failed to update answer. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     const convertLanguage = (event: React.MouseEvent, lang: 'en' | 'vi') => {
         event.preventDefault();
 
@@ -43,6 +55,30 @@ const QuestionPage = () => {
             alert('Please update the data before changing the language');
         } else {
             setLanguage(lang);
+        }
+    };
+
+    const editAnswer = () => {
+        setIsEditAnswer(!isEditAnswer);
+        
+        if (isEditText) {
+            setIsEditText(false);
+        }
+    };
+
+    const editText = () => {
+        if (isEditText) {
+            setSelectedData({
+                qIndex: -1,
+                aIndex: -1,
+                value: ''
+            });
+        }
+
+        setIsEditText(!isEditText);
+        
+        if (isEditAnswer) {
+            setIsEditAnswer(false);
         }
     };
 
@@ -63,13 +99,20 @@ const QuestionPage = () => {
         }
         
         if (isEditAnswer && aIndex !== -1 && aIndex !== questions[qIndex].correctAnswer) {
-            const updatedQuestions = questions.map((question, index) => {
-                if (index === qIndex) {
-                    return { ...question, correctAnswer: aIndex };
-                }
-                return question;
+            updateAnswer({
+                question_id: questions[qIndex].id,
+                answer_id: aIndex,
+                language: language
+            }, (response: any) => {
+                console.log(response);
             });
-            setQuestions(updatedQuestions);
+            // const updatedQuestions = questions.map((question, index) => {
+            //     if (index === qIndex) {
+            //         return { ...question, correctAnswer: aIndex };
+            //     }
+            //     return question;
+            // });
+            // setQuestions(updatedQuestions);
         }
     };
 
@@ -107,30 +150,6 @@ const QuestionPage = () => {
         });
     };
 
-    const editAnswer = () => {
-        setIsEditAnswer(!isEditAnswer);
-        
-        if (isEditText) {
-            setIsEditText(false);
-        }
-    };
-
-    const editText = () => {
-        if (isEditText) {
-            setSelectedData({
-                qIndex: -1,
-                aIndex: -1,
-                value: ''
-            });
-        }
-
-        setIsEditText(!isEditText);
-        
-        if (isEditAnswer) {
-            setIsEditAnswer(false);
-        }
-    };
-
     if (loading) return <SpinningLoading />;
     if (error) return <div>{error}</div>;
 
@@ -165,7 +184,7 @@ const QuestionPage = () => {
                 <div key={q.id} className='question-container'>
                     <div className='question'>
                         <a
-                            href="#"
+                            className='cursor-pointer'
                             onClick={(e) => selectDataType(e, qIndex, -1, q.question)}
                             style={{
                                 display: selectedData.qIndex === qIndex && selectedData.aIndex === -1 ? 'none' : 'block'
@@ -197,7 +216,7 @@ const QuestionPage = () => {
                                         />
                                     ) : (
                                         <a
-                                            href="#"
+                                            className='cursor-pointer'
                                             onClick={(e) => selectDataType(e, qIndex, aIndex, answer)}
                                         >
                                             <li
