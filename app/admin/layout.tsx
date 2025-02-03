@@ -3,7 +3,7 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "@/src/styles/globals.css";
 import Header from "@/src/components/admin/layout/header";
-import Footer from "@/src/components/admin/layout/footer";
+// import Footer from "@/src/components/admin/layout/footer";
 import { usePathname } from 'next/navigation';
 
 const geistSans = Geist({
@@ -27,7 +27,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             >
                 {!isLoginPage ? <Header /> : null}
                 {children}
-                {!isLoginPage ? <Footer /> : null}
+                {/* {!isLoginPage ? <Footer /> : null} */}
             </body>
         </html>
     );

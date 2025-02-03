@@ -9,6 +9,12 @@ const QuestionPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [language, setLanguage] = useState<'en' | 'vi'>('en');
+    const [pagination, setPagination] = useState({
+        page: 1,
+        perPage: 1,
+        total: 0,
+        totalPages: 0
+    });
     const [questions, setQuestions] = useState<Question[]>([]);
     const [selectedData, setSelectedData] = useState<SelectedQuestionData>({
         qIndex: -1,
@@ -22,12 +28,28 @@ const QuestionPage = () => {
         setLoading(true);
         setError(null);
         getQuestions();
-    }, [language]);
+    }, [language, pagination.page]);
+
+    const setPageData = (response: any) => {
+        setPagination({
+            page: response.current_page,
+            perPage: response.per_page,
+            total: response.total,
+            totalPages: response.total_pages
+        });
+
+        setQuestions(response.data);
+    }
 
     const getQuestions = async () => {
         try {
-            const response = await questionService.getQuestions(language);
-            setQuestions(response);
+            const response = await questionService.getQuestions({
+                page: pagination.page,
+                per_page: pagination.perPage,
+                language: language
+            });
+
+            setPageData(response);
         } catch (error) {
             console.error('Error fetching questions:', error);
             setError('Failed to fetch questions. Please try again later.');
@@ -36,13 +58,113 @@ const QuestionPage = () => {
         }
     }
 
-    const updateAnswer = async (request: any, callback: Function) => {
+    const prevPage = () => {
+        if (pagination.page > 1) {
+            setPagination({
+                ...pagination,
+                page: pagination.page - 1
+            })
+        }
+    }
+
+    const nextPage = () => {
+        if (pagination.page < pagination.totalPages) {
+            setPagination({
+                ...pagination,
+                page: pagination.page + 1
+            })
+        }
+    }
+
+    const editAnswer = () => {
+        setIsEditAnswer(!isEditAnswer);
+
+        if (isEditText) {
+            setIsEditText(false);
+        }
+    }
+
+    const editText = () => {
+        if (isEditText) {
+            setSelectedData({
+                qIndex: -1,
+                aIndex: -1,
+                value: ''
+            });
+        }
+
+        setIsEditText(!isEditText);
+
+        if (isEditAnswer) {
+            setIsEditAnswer(false);
+        }
+    }
+
+    const cancelData = () => {
+        setSelectedData({
+            qIndex: -1,
+            aIndex: -1,
+            value: ''
+        });
+    }
+
+    const selectDataType = (event: React.MouseEvent, qIndex: number, aIndex: number, value: string) => {
+        event.preventDefault();
+
+        if (isEditText) {
+            setSelectedData({
+                qIndex: qIndex,
+                aIndex: aIndex,
+                value: value
+            });
+        }
+
+        if (isEditAnswer && aIndex !== -1 && aIndex !== -2 && aIndex !== questions[qIndex].correctAnswer) {
+            updateAnswer(qIndex, aIndex);
+        }
+    }
+
+    const updateAnswer = async (qIndex: number, aIndex: number) => {
+        setLoading(true);
+
         try {
-            const response = await questionService.updateAnswer(request);
-            callback(response);
+            const response = await questionService.updateAnswer({
+                question_id: questions[qIndex].id,
+                answer_id: aIndex,
+                language: language,
+                page: pagination.page,
+                per_page: pagination.perPage,
+            });
+            setPageData(response);
         } catch (error) {
             console.error('Error update answer:', error);
             setError('Failed to update answer. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const updateText = async () => {
+        try {
+            setLoading(true);
+            const response = await questionService.updateText({
+                question_id: questions[selectedData.qIndex].id,
+                answer_id: selectedData.aIndex,
+                value: selectedData.value,
+                language: language,
+                page: pagination.page,
+                per_page: pagination.perPage,
+            });
+
+            setPageData(response);
+            setSelectedData({
+                qIndex: -1,
+                aIndex: -1,
+                value: ''
+            });
+        } catch (error) {
+            console.error('Error update text:', error);
+            setError('Failed to update text. Please try again later.');
         } finally {
             setLoading(false);
         }
@@ -56,132 +178,73 @@ const QuestionPage = () => {
         } else {
             setLanguage(lang);
         }
-    };
+    }
 
-    const editAnswer = () => {
-        setIsEditAnswer(!isEditAnswer);
-        
-        if (isEditText) {
-            setIsEditText(false);
-        }
-    };
-
-    const editText = () => {
-        if (isEditText) {
-            setSelectedData({
-                qIndex: -1,
-                aIndex: -1,
-                value: ''
-            });
-        }
-
-        setIsEditText(!isEditText);
-        
-        if (isEditAnswer) {
-            setIsEditAnswer(false);
-        }
-    };
-
-    const selectDataType = (
-        event: React.MouseEvent,
-        qIndex: number,
-        aIndex: number,
-        value: string
-    ) => {
-        event.preventDefault();
-
-        if (isEditText) {
-            setSelectedData({
-                qIndex: qIndex,
-                aIndex: aIndex,
-                value: value
-            });
-        }
-        
-        if (isEditAnswer && aIndex !== -1 && aIndex !== questions[qIndex].correctAnswer) {
-            updateAnswer({
-                question_id: questions[qIndex].id,
-                answer_id: aIndex,
-                language: language
-            }, (response: any) => {
-                console.log(response);
-            });
-            // const updatedQuestions = questions.map((question, index) => {
-            //     if (index === qIndex) {
-            //         return { ...question, correctAnswer: aIndex };
-            //     }
-            //     return question;
-            // });
-            // setQuestions(updatedQuestions);
-        }
-    };
-
-    const updateData = () => {
-        const updatedQuestions = questions.map((q, qIndex) => {
-            if (qIndex === selectedData.qIndex) {
-                if (selectedData.aIndex === -1) {
-                    return { ...q, question: selectedData.value };
-                } else if (selectedData.aIndex === -2) {
-                    return { ...q, explanation: selectedData.value };
-                } else if (selectedData.aIndex >= 0) {
-                    const updatedAnswers = q.answers.map((answer, aIndex) =>
-                        aIndex === selectedData.aIndex ? selectedData.value : answer
-                    );
-                    return { ...q, answers: updatedAnswers };
-                }
-            }
-            return q;
-        });
-
-        setQuestions(updatedQuestions);
-
-        setSelectedData({
-            qIndex: -1,
-            aIndex: -1,
-            value: ''
-        });
-    };
-
-    const cancelData = () => {
-        setSelectedData({
-            qIndex: -1,
-            aIndex: -1,
-            value: ''
-        });
-    };
-
-    if (loading) return <SpinningLoading />;
-    if (error) return <div>{error}</div>;
+    if (loading) return <SpinningLoading />
+    if (error) return <div>{error}</div>
 
     return (
         <div className='wrapper'>
             <h1 className='title'>Questions</h1>
-            <button
-                className='btn btn-default mr-2'
-                onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}
-            >
-                {language === 'en' ? 'VI' : 'EN'}
-            </button>
-            
-            <button 
-                onClick={() => editAnswer()} 
-                className={`btn btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`}
-            >
-                {isEditAnswer ? 'Stop edit answer' : 'Edit answer'}
-            </button>
+            <div className="filter sticky">
+                <div className="actions">
+                    <button
+                        className='btn btn-default mr-2'
+                        onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}
+                    >
+                        Convert to {language === 'en' ? 'VI' : 'EN'}
+                    </button>
 
-            <button
-                onClick={() => editText()}
-                className={`btn btn-${isEditText ? 'danger' : 'primary'} mr-2`}
-            >
-                {isEditText ? 'Stop edit text' : 'Edit text'}
-            </button>
+                    <button
+                        onClick={() => editAnswer()}
+                        className={`btn btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`}
+                    >
+                        {isEditAnswer ? 'Stop edit answer' : 'Edit answer'}
+                    </button>
 
-            <br />
-            <br />
+                    <button
+                        onClick={() => editText()}
+                        className={`btn btn-${isEditText ? 'danger' : 'primary'} mr-2`}
+                    >
+                        {isEditText ? 'Stop edit text' : 'Edit text'}
+                    </button>
+                </div>
+
+                <div className="pagination">
+                    <button
+                        className={`btn btn-default ${pagination.page === 1 ? 'disabled' : ''}`}
+                        onClick={() => prevPage()}
+                    >
+                        {"<"}
+                    </button>
+                    <div className='page-input'>
+                        Page <input type="text" value={pagination.page} onChange={(e) => {
+                            const page = Number(e.target.value);
+                            if (!isNaN(page) && page > 0 && page <= pagination.totalPages) {
+                                setPagination({ ...pagination, page });
+                            }
+                        }} /> of {pagination.totalPages}
+                    </div>
+                    <button
+                        className={`btn btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}
+                        onClick={() => nextPage()}
+                    >
+                        {">"}
+                    </button>
+                </div>
+            </div>
 
             {questions.map((q, qIndex) => (
                 <div key={q.id} className='question-container'>
+                    <button
+                        className='btn btn-danger btn-sm float-right'
+                    // onClick={() => {
+                    //     const updatedQuestions = questions.filter((_, index) => index !== qIndex);
+                    //     setQuestions(updatedQuestions);
+                    // }}
+                    >
+                        Delete
+                    </button>
                     <div className='question'>
                         <a
                             className='cursor-pointer'
@@ -190,7 +253,7 @@ const QuestionPage = () => {
                                 display: selectedData.qIndex === qIndex && selectedData.aIndex === -1 ? 'none' : 'block'
                             }}
                         >
-                            <strong>Question {qIndex + 1}:</strong> {q.question}
+                            <strong>Question {q.id}:</strong> {q.question}
                         </a>
                         {selectedData.qIndex === qIndex && selectedData.aIndex === -1 && (
                             <input
@@ -220,20 +283,19 @@ const QuestionPage = () => {
                                             onClick={(e) => selectDataType(e, qIndex, aIndex, answer)}
                                         >
                                             <li
-                                                className={`answer-item ${
-                                                    aIndex === q.correctAnswer
-                                                        ? 'correct'
-                                                        : aIndex === q.selectedAnswer
+                                                className={`answer-item ${aIndex === q.correctAnswer
+                                                    ? 'correct'
+                                                    : aIndex === q.selectedAnswer
                                                         ? 'selected'
                                                         : ''
-                                                }`}
+                                                    }`}
                                                 style={{
                                                     color:
                                                         aIndex === q.correctAnswer
                                                             ? 'red'
                                                             : aIndex === q.selectedAnswer
-                                                            ? 'orange'
-                                                            : 'inherit',
+                                                                ? 'orange'
+                                                                : 'inherit',
                                                     fontWeight:
                                                         aIndex === q.correctAnswer || aIndex === q.selectedAnswer
                                                             ? 'bold'
@@ -273,7 +335,7 @@ const QuestionPage = () => {
                     </div>
                     {selectedData.qIndex === qIndex ? (
                         <div>
-                            <button onClick={updateData} className='btn btn-primary'>
+                            <button onClick={updateText} className='btn btn-primary'>
                                 Update
                             </button>
                             <button onClick={cancelData} className='btn btn-secondary'>
@@ -286,5 +348,7 @@ const QuestionPage = () => {
         </div>
     );
 };
+
+
 
 export default QuestionPage;
