@@ -2,33 +2,60 @@
 
 import { useState, useEffect } from 'react';
 import questionService from '@/src/services/questionService';
-import { Question, SelectedQuestionData } from '@/src/types/question';
+import { Question, SelectedQuestionData, INewQuestion } from '@/src/types/question';
 import SpinningLoading from '@/src/components/ui/loading/spinningLoading';
+import { Pagination } from '@/src/types/pagination';
+import { Language } from '@/src/types/language';
+import Alert from '@/src/components/ui/notification/alert';
+import { IAlert } from '@/src/types/alert';
 
 const QuestionPage = () => {
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const [language, setLanguage] = useState<'en' | 'vi'>('en');
-    const [pagination, setPagination] = useState({
+    const [language, setLanguage] = useState<Language>('en');
+    const [questions, setQuestions] = useState<Question[]>([]);
+    const [isEditText, setIsEditText] = useState(false);
+    const [isEditAnswer, setIsEditAnswer] = useState(false);
+    const [isAddQuestion, setIsAddQuestion] = useState(false);
+    const [keySearch, setKeySearch] = useState('');
+    const [isAlert, setIsAlert] = useState<IAlert>({
+        type: 'success',
+        message: ''
+    });
+    const [pagination, setPagination] = useState<Pagination>({
         page: 1,
-        perPage: 1,
+        perPage: 20,
         total: 0,
         totalPages: 0
     });
-    const [questions, setQuestions] = useState<Question[]>([]);
     const [selectedData, setSelectedData] = useState<SelectedQuestionData>({
         qIndex: -1,
         aIndex: -1,
         value: ''
     });
-    const [isEditText, setIsEditText] = useState(false);
-    const [isEditAnswer, setIsEditAnswer] = useState(false);
+    const newQuestionFirstData = {
+        en: {
+            id: 0,
+            question: '',
+            answers: [''],
+            correct_answer: 0,
+            selected_answer: null,
+            explanation: 'Updating'
+        },
+        vi: {
+            id: 0,
+            question: '',
+            answers: [''],
+            correct_answer: 0,
+            selected_answer: null,
+            explanation: 'Đang cập nhật'
+        }
+    };
+    const [newQuestion, setNewQuestion] = useState<INewQuestion>(newQuestionFirstData);
 
     useEffect(() => {
         setLoading(true);
-        setError(null);
         getQuestions();
-    }, [language, pagination.page]);
+    }, [language, pagination.page, pagination.perPage, keySearch]);
 
     const setPageData = (response: any) => {
         setPagination({
@@ -43,16 +70,24 @@ const QuestionPage = () => {
 
     const getQuestions = async () => {
         try {
-            const response = await questionService.getQuestions({
+            let params = {
                 page: pagination.page,
                 per_page: pagination.perPage,
                 language: language
-            });
+            };
+
+            if (keySearch) {
+                params.key = keySearch;
+            }
+
+            const response = await questionService.getQuestions(params);
 
             setPageData(response);
-        } catch (error) {
-            console.error('Error fetching questions:', error);
-            setError('Failed to fetch questions. Please try again later.');
+        } catch (error: any) {
+            setIsAlert({
+                type: 'error',
+                message: error.message || 'Failed to fetch questions. Please try again later.'
+            });
         } finally {
             setLoading(false);
         }
@@ -108,8 +143,8 @@ const QuestionPage = () => {
         });
     }
 
-    const selectDataType = (event: React.MouseEvent, qIndex: number, aIndex: number, value: string) => {
-        event.preventDefault();
+    const selectDataType = (e: any, qIndex: number, aIndex: number, value: string) => {
+        e.preventDefault();
 
         if (isEditText) {
             setSelectedData({
@@ -119,7 +154,7 @@ const QuestionPage = () => {
             });
         }
 
-        if (isEditAnswer && aIndex !== -1 && aIndex !== -2 && aIndex !== questions[qIndex].correctAnswer) {
+        if (isEditAnswer && aIndex !== -1 && aIndex !== -2 && aIndex !== questions[qIndex].correct_answer) {
             updateAnswer(qIndex, aIndex);
         }
     }
@@ -136,9 +171,15 @@ const QuestionPage = () => {
                 per_page: pagination.perPage,
             });
             setPageData(response);
-        } catch (error) {
-            console.error('Error update answer:', error);
-            setError('Failed to update answer. Please try again later.');
+            setIsAlert({
+                type: 'success',
+                message: 'Update answer successfully!'
+            });
+        } catch (error: any) {
+            setIsAlert({
+                type: 'error',
+                message: error.message || 'Failed to update answer. Please try again later.'
+            });
         } finally {
             setLoading(false);
         }
@@ -162,16 +203,22 @@ const QuestionPage = () => {
                 aIndex: -1,
                 value: ''
             });
-        } catch (error) {
-            console.error('Error update text:', error);
-            setError('Failed to update text. Please try again later.');
+            setIsAlert({
+                type: 'success',
+                message: 'Update text successfully!'
+            });
+        } catch (error: any) {
+            setIsAlert({
+                type: 'error',
+                message: error.message || 'Failed to update text. Please try again later.'
+            });
         } finally {
             setLoading(false);
         }
     }
 
-    const convertLanguage = (event: React.MouseEvent, lang: 'en' | 'vi') => {
-        event.preventDefault();
+    const convertLanguage = (e: any, lang: 'en' | 'vi') => {
+        e.preventDefault();
 
         if (selectedData.qIndex !== -1) {
             alert('Please update the data before changing the language');
@@ -180,68 +227,334 @@ const QuestionPage = () => {
         }
     }
 
-    if (loading) return <SpinningLoading />
-    if (error) return <div>{error}</div>
+    const filterPage = (e: any) => {
+        const page = Number(e.target.value);
+
+        if (!isNaN(page) && page > 0 && page <= pagination.totalPages) {
+            setPagination({ ...pagination, page });
+        }
+    }
+
+    const searchText = (e: any) => {
+        if (e.key === 'Enter') {
+            setKeySearch(e.target.value);
+            setPagination({
+                ...pagination,
+                page: 1
+            });
+        }
+    }
+
+    const setLimit = (e: any) => {
+        setPagination({
+            ...pagination,
+            page: 1,
+            perPage: Number(e.target.value)
+        });
+    }
+
+    const deleteQuestion = async (e: any, id: number) => {
+        setLoading(true);
+
+        try {
+            const response = await questionService.deleteQuestion({
+                question_id: id,
+                page: pagination.page,
+                per_page: pagination.perPage,
+            });
+
+            setPageData(response);
+            setIsAlert({
+                type: 'success',
+                message: 'Delete question successfully!'
+            });
+        } catch (error: any) {
+            setIsAlert({
+                type: 'error',
+                message: error.message || 'Failed to delete question. Please try again later.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const openNewQuestionForm = () => {
+        setIsAddQuestion(!isAddQuestion);
+
+        if (isEditText) {
+            setIsEditText(false);
+        }
+
+        if (isEditAnswer) {
+            setIsEditAnswer(false);
+        }
+
+        if (!isAddQuestion) {
+            setNewQuestion(newQuestionFirstData);
+        }
+    }
+
+    const addAnswer = (e: any) => {
+        e.preventDefault();
+
+        setNewQuestion({
+            ...newQuestion,
+            en: {
+                ...newQuestion.en,
+                answers: [...newQuestion.en.answers, '']
+            },
+            vi: {
+                ...newQuestion.vi,
+                answers: [...newQuestion.vi.answers, '']
+            }
+        });
+    }
+
+    const removeAnswer = (e: any, index: number) => {
+        e.preventDefault();
+
+        setNewQuestion({
+            ...newQuestion,
+            en: {
+                ...newQuestion.en,
+                answers: newQuestion.en.answers.filter((_, i) => i !== index)
+            },
+            vi: {
+                ...newQuestion.vi,
+                answers: newQuestion.vi.answers.filter((_, i) => i !== index)
+            }
+        });
+    }
+
+    const addQuestion = async (e: any) => {
+        e.preventDefault();
+        setLoading(true);
+
+        try {
+            const response = await questionService.addQuestion(newQuestion);
+            setPageData(response);
+            setIsAlert({
+                type: 'success',
+                message: 'Add question successfully!'
+            });
+            setNewQuestion({
+                en: {
+                    id: 0,
+                    question: '',
+                    answers: [''],
+                    correct_answer: 0,
+                    selected_answer: null,
+                    explanation: ''
+                },
+                vi: {
+                    id: 0,
+                    question: '',
+                    answers: [''],
+                    correct_answer: 0,
+                    selected_answer: null,
+                    explanation: ''
+                }
+            });
+            setIsAddQuestion(false);
+        } catch (error: any) {
+            setIsAlert({
+                type: 'error',
+                message: error.message || 'Failed to add question. Please try again later.'
+            });
+        } finally {
+            setLoading(false);
+        }
+    }
 
     return (
         <div className='wrapper'>
-            <h1 className='title'>Questions</h1>
+            {loading && <SpinningLoading />}
+            <Alert type={isAlert.type} message={isAlert.message} />
             <div className="filter sticky">
                 <div className="actions">
-                    <button
-                        className='btn btn-default mr-2'
-                        onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}
-                    >
+                    <button className={`btn btn-${isAddQuestion ? 'danger' : 'primary'} mr-2`} onClick={() => openNewQuestionForm()}>
+                        {isAddQuestion ? 'Cancel new question' : 'New question'}
+                    </button>
+
+                    <button className='btn btn-default mr-2' onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}>
                         Convert to {language === 'en' ? 'VI' : 'EN'}
                     </button>
 
-                    <button
-                        onClick={() => editAnswer()}
-                        className={`btn btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`}
-                    >
+                    <button className={`btn btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`} onClick={() => editAnswer()}>
                         {isEditAnswer ? 'Stop edit answer' : 'Edit answer'}
                     </button>
 
-                    <button
-                        onClick={() => editText()}
-                        className={`btn btn-${isEditText ? 'danger' : 'primary'} mr-2`}
-                    >
+                    <button className={`btn btn-${isEditText ? 'danger' : 'primary'} mr-2`} onClick={() => editText()}>
                         {isEditText ? 'Stop edit text' : 'Edit text'}
                     </button>
                 </div>
 
                 <div className="pagination">
-                    <button
-                        className={`btn btn-default ${pagination.page === 1 ? 'disabled' : ''}`}
-                        onClick={() => prevPage()}
-                    >
+                    Limit
+                    <select className='btn btn-default' value={pagination.perPage} onChange={(e) => setLimit(e)}>
+                        <option value={1}>1</option>
+                        <option value={2}>2</option>
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                    <button className={`btn btn-default ${pagination.page === 1 ? 'disabled' : ''}`} onClick={() => prevPage()}>
                         {"<"}
                     </button>
                     <div className='page-input'>
-                        Page <input type="text" value={pagination.page} onChange={(e) => {
-                            const page = Number(e.target.value);
-                            if (!isNaN(page) && page > 0 && page <= pagination.totalPages) {
-                                setPagination({ ...pagination, page });
-                            }
-                        }} /> of {pagination.totalPages}
+                        Page <input type="text" onChange={(e) => filterPage(e)} value={pagination.page}  /> of {pagination.totalPages}
                     </div>
-                    <button
-                        className={`btn btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}
-                        onClick={() => nextPage()}
-                    >
+                    <button className={`btn btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`} onClick={() => nextPage()}>
                         {">"}
                     </button>
+                    <div className="search">
+                        <input type="text" placeholder='Key search ...' onKeyDown={(e) => searchText(e)} />
+                    </div>
                 </div>
             </div>
+
+            {!loading && !isAddQuestion && questions.length === 0 && (
+                <div className='no-data'>
+                    No data available.
+                </div>
+            )}
+
+            {isAddQuestion && (
+                <div className="question-container">
+                    <strong>Question:</strong>
+                    <div className="question flex">
+                        <input
+                            placeholder="EN"
+                            type="text"
+                            value={newQuestion.en.question}
+                            onChange={(e) => setNewQuestion({
+                                ...newQuestion,
+                                en: { ...newQuestion.en, question: e.target.value }
+                            })}
+                        />
+                        <input
+                            placeholder="VI"
+                            type="text"
+                            value={newQuestion.vi.question}
+                            onChange={(e) => setNewQuestion({
+                                ...newQuestion,
+                                vi: { ...newQuestion.vi, question: e.target.value }
+                            })}
+                        />
+                    </div>
+                    <div className="answers">
+                        <strong>Answers: </strong>
+                        <ul className="answers-list">
+                            {/* <div className='flex'>
+                                <input 
+                                    placeholder="EN" 
+                                    type="text" 
+                                    value={newQuestion.en.answers[0] || ''} 
+                                    onChange={(e) => setNewQuestion({
+                                        ...newQuestion,
+                                        en: { 
+                                            ...newQuestion.en, 
+                                            answers: [e.target.value, ...newQuestion.en.answers.slice(1)] 
+                                        }
+                                    })}
+                                />
+                                <input 
+                                    placeholder="VI" 
+                                    type="text" 
+                                    value={newQuestion.vi.answers[0] || ''} 
+                                    onChange={(e) => setNewQuestion({
+                                        ...newQuestion,
+                                        vi: { 
+                                            ...newQuestion.vi, 
+                                            answers: [e.target.value, ...newQuestion.vi.answers.slice(1)] 
+                                        }
+                                    })}
+                                />
+                            </div> */}
+                            {newQuestion.en.answers.map((answer, index) => (
+                                <div key={index} className='flex items-center'>
+                                    <a href="#" className='btn btn-danger btn-sm cursor-pointer h-8 mr-2' onClick={(e) => { removeAnswer(e, index) }}>
+                                        -
+                                    </a>
+                                    <input
+                                        type="radio"
+                                        checked={newQuestion.en.correct_answer === index}
+                                        onChange={() => setNewQuestion({
+                                            ...newQuestion,
+                                            en: { ...newQuestion.en, correct_answer: index },
+                                            vi: { ...newQuestion.vi, correct_answer: index }
+                                        })}
+                                        className='mr-2 cursor-pointer'
+                                    />
+                                    <input
+                                        placeholder="EN"
+                                        type="text"
+                                        value={answer}
+                                        onChange={(e) => setNewQuestion({
+                                            ...newQuestion,
+                                            en: {
+                                                ...newQuestion.en,
+                                                answers: newQuestion.en.answers.map((ans, i) => i === index ? e.target.value : ans)
+                                            }
+                                        })}
+                                    />
+                                    <input
+                                        placeholder="VI"
+                                        type="text"
+                                        value={newQuestion.vi.answers[index] || ''}
+                                        onChange={(e) => setNewQuestion({
+                                            ...newQuestion,
+                                            vi: {
+                                                ...newQuestion.vi,
+                                                answers: newQuestion.vi.answers.map((ans, i) => i === index ? e.target.value : ans)
+                                            }
+                                        })}
+                                    />
+                                </div>
+                            ))}
+                        </ul>
+                        <a className='btn btn-primary btn-sm cursor-pointer' onClick={(e) => addAnswer(e)}>
+                            +
+                        </a>
+                    </div>
+                    <strong>Explanation:</strong>
+                    <div className="explanation flex">
+                        <input
+                            placeholder="EN"
+                            type="text"
+                            value={newQuestion.en.explanation}
+                            onChange={(e) => setNewQuestion({
+                                ...newQuestion,
+                                en: { ...newQuestion.en, explanation: e.target.value }
+                            })}
+                        />
+                        <input
+                            placeholder="VI"
+                            type="text"
+                            value={newQuestion.vi.explanation}
+                            onChange={(e) => setNewQuestion({
+                                ...newQuestion,
+                                vi: { ...newQuestion.vi, explanation: e.target.value }
+                            })}
+                        />
+                    </div>
+                    <button onClick={(e) => addQuestion(e)} className='btn btn-primary'>
+                        Create
+                    </button>
+                </div>
+            )}
 
             {questions.map((q, qIndex) => (
                 <div key={q.id} className='question-container'>
                     <button
                         className='btn btn-danger btn-sm float-right'
-                    // onClick={() => {
-                    //     const updatedQuestions = questions.filter((_, index) => index !== qIndex);
-                    //     setQuestions(updatedQuestions);
-                    // }}
+                        onClick={(e) => {
+                            if (confirm('Are you sure you want to delete this question?')) {
+                                deleteQuestion(e, q.id);
+                            }
+                        }}
                     >
                         Delete
                     </button>
@@ -283,21 +596,21 @@ const QuestionPage = () => {
                                             onClick={(e) => selectDataType(e, qIndex, aIndex, answer)}
                                         >
                                             <li
-                                                className={`answer-item ${aIndex === q.correctAnswer
+                                                className={`answer-item ${aIndex === q.correct_answer
                                                     ? 'correct'
-                                                    : aIndex === q.selectedAnswer
+                                                    : aIndex === q.selected_answer
                                                         ? 'selected'
                                                         : ''
                                                     }`}
                                                 style={{
                                                     color:
-                                                        aIndex === q.correctAnswer
+                                                        aIndex === q.correct_answer
                                                             ? 'red'
-                                                            : aIndex === q.selectedAnswer
+                                                            : aIndex === q.selected_answer
                                                                 ? 'orange'
                                                                 : 'inherit',
                                                     fontWeight:
-                                                        aIndex === q.correctAnswer || aIndex === q.selectedAnswer
+                                                        aIndex === q.correct_answer || aIndex === q.selected_answer
                                                             ? 'bold'
                                                             : 'normal'
                                                 }}

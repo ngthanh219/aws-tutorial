@@ -14,24 +14,32 @@ class ApiClient {
         });
     }
 
+    private handleResponse<T>(response: { data: any }): T {
+        if (response.data.status === 'error') {
+            throw new Error(response.data.message || 'An error occurred');
+        }
+
+        return response.data;
+    }
+
     public async get<T>(url: string, params?: any): Promise<T> {
         const response = await this.client.get<T>(url, { params });
-        return response.data;
+        return this.handleResponse(response);
     }
 
     public async post<T>(url: string, data: any): Promise<T> {
         const response = await this.client.post<T>(url, data);
-        return response.data;
+        return this.handleResponse(response);
     }
 
     public async put<T>(url: string, data: any): Promise<T> {
         const response = await this.client.put<T>(url, data);
-        return response.data;
+        return this.handleResponse(response);
     }
 
     public async delete<T>(url: string): Promise<T> {
         const response = await this.client.delete<T>(url);
-        return response.data;
+        return this.handleResponse(response);
     }
 }
 

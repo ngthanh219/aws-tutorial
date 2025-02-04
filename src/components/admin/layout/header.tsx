@@ -16,7 +16,7 @@ const Header: React.FC = () => {
 
     return (
         <header style={headerStyle}>
-            <h1>AWS tutorial</h1>
+            <h1>AWS SAA-C03</h1>
             <nav>
                 <ul style={navListStyle}>
                     <li style={navItemStyle}><a href="/admin/question">Question</a></li>

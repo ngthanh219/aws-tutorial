@@ -2,14 +2,14 @@ export interface Question {
     id: number;
     question: string;
     answers: string[];
-    correctAnswer: number;
-    selectedAnswer: number;
+    correct_answer: number;
+    selected_answer: number | null;
     explanation: string;
 }
 
-export interface QuestionData {
-    en: Question[];
-    vi: Question[];
+export interface INewQuestion{
+    en: Question;
+    vi: Question;
 }
 
 export interface SelectedQuestionData {
