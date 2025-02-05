@@ -10,7 +10,7 @@ const Header: React.FC = () => {
     const logout = (event :any) => {
         event.preventDefault();
         Cookies.remove('admin_token');
-        Cookies.remove('admin_info');
+        Cookies.remove('admin_expired');
         router.push('/admin/login');
     };
 

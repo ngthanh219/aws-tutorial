@@ -1,6 +1,9 @@
 import ApiClient from './apiClient';
+import Cookies from 'js-cookie';
 
 const apiClient = new ApiClient();
+const token = Cookies.get('admin_token');
+apiClient.setHeader('Authorization', `Bearer ${token}`);
 
 const getQuestions = async (request: any): Promise<any> => {
     return await apiClient.get<any[]>('', request);

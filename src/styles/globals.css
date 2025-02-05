@@ -70,6 +70,11 @@ body {
     font-size: 14px;
 }
 
+.btn-sm {
+    padding: 0px 10px;
+    font-size: 12px;
+}
+
 .btn-primary {
     background-color: #007bff;
     color: #fff;

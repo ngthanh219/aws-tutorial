@@ -9,9 +9,13 @@ class ApiClient {
         this.client = axios.create({
             baseURL,
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             }
         });
+    }
+
+    public setHeader(name: string, value: string): void {
+        this.client.defaults.headers[name] = value;
     }
 
     private handleResponse<T>(response: { data: any }): T {
