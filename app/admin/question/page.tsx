@@ -113,9 +113,15 @@ const QuestionPage = () => {
 
     const editAnswer = () => {
         setIsEditAnswer(!isEditAnswer);
+        setIsAddQuestion(false);
 
         if (isEditText) {
             setIsEditText(false);
+            setSelectedData({
+                qIndex: -1,
+                aIndex: -1,
+                value: ''
+            });
         }
     }
 
@@ -129,6 +135,7 @@ const QuestionPage = () => {
         }
 
         setIsEditText(!isEditText);
+        setIsAddQuestion(false);
 
         if (isEditAnswer) {
             setIsEditAnswer(false);
@@ -283,6 +290,11 @@ const QuestionPage = () => {
 
         if (isEditText) {
             setIsEditText(false);
+            setSelectedData({
+                qIndex: -1,
+                aIndex: -1,
+                value: ''
+            });
         }
 
         if (isEditAnswer) {
@@ -366,6 +378,12 @@ const QuestionPage = () => {
         }
     }
 
+    const formatText = (text: string) => {
+        return text.split('\n').map((line, index) =>
+            line ? `<span key=${index}>${line.trim()}</span><br/>` : '<br/>'
+        ).join('');
+    };
+
     return (
         <div className='wrapper'>
             {loading && <SpinningLoading />}
@@ -404,7 +422,7 @@ const QuestionPage = () => {
                         {"<"}
                     </button>
                     <div className='page-input'>
-                        Page <input type="text" onChange={(e) => filterPage(e)} value={pagination.page}  /> of {pagination.totalPages}
+                        Page <input type="text" onChange={(e) => filterPage(e)} value={pagination.page} /> of {pagination.totalPages}
                     </div>
                     <button className={`btn btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`} onClick={() => nextPage()}>
                         {">"}
@@ -425,18 +443,17 @@ const QuestionPage = () => {
                 <div className="question-container">
                     <strong>Question:</strong>
                     <div className="question flex">
-                        <input
+                        <textarea
                             placeholder="EN"
-                            type="text"
                             value={newQuestion.en.question}
                             onChange={(e) => setNewQuestion({
                                 ...newQuestion,
                                 en: { ...newQuestion.en, question: e.target.value }
                             })}
+                            cols={30}
                         />
-                        <input
+                        <textarea
                             placeholder="VI"
-                            type="text"
                             value={newQuestion.vi.question}
                             onChange={(e) => setNewQuestion({
                                 ...newQuestion,
@@ -447,32 +464,6 @@ const QuestionPage = () => {
                     <div className="answers">
                         <strong>Answers: </strong>
                         <ul className="answers-list">
-                            {/* <div className='flex'>
-                                <input 
-                                    placeholder="EN" 
-                                    type="text" 
-                                    value={newQuestion.en.answers[0] || ''} 
-                                    onChange={(e) => setNewQuestion({
-                                        ...newQuestion,
-                                        en: { 
-                                            ...newQuestion.en, 
-                                            answers: [e.target.value, ...newQuestion.en.answers.slice(1)] 
-                                        }
-                                    })}
-                                />
-                                <input 
-                                    placeholder="VI" 
-                                    type="text" 
-                                    value={newQuestion.vi.answers[0] || ''} 
-                                    onChange={(e) => setNewQuestion({
-                                        ...newQuestion,
-                                        vi: { 
-                                            ...newQuestion.vi, 
-                                            answers: [e.target.value, ...newQuestion.vi.answers.slice(1)] 
-                                        }
-                                    })}
-                                />
-                            </div> */}
                             {newQuestion.en.answers.map((answer, index) => (
                                 <div key={index} className='flex items-center'>
                                     <a href="#" className='btn btn-danger btn-sm cursor-pointer h-8 mr-2' onClick={(e) => { removeAnswer(e, index) }}>
@@ -488,9 +479,8 @@ const QuestionPage = () => {
                                         })}
                                         className='mr-2 cursor-pointer'
                                     />
-                                    <input
+                                    <textarea
                                         placeholder="EN"
-                                        type="text"
                                         value={answer}
                                         onChange={(e) => setNewQuestion({
                                             ...newQuestion,
@@ -500,9 +490,8 @@ const QuestionPage = () => {
                                             }
                                         })}
                                     />
-                                    <input
+                                    <textarea
                                         placeholder="VI"
-                                        type="text"
                                         value={newQuestion.vi.answers[index] || ''}
                                         onChange={(e) => setNewQuestion({
                                             ...newQuestion,
@@ -521,18 +510,16 @@ const QuestionPage = () => {
                     </div>
                     <strong>Explanation:</strong>
                     <div className="explanation flex">
-                        <input
+                        <textarea
                             placeholder="EN"
-                            type="text"
                             value={newQuestion.en.explanation}
                             onChange={(e) => setNewQuestion({
                                 ...newQuestion,
                                 en: { ...newQuestion.en, explanation: e.target.value }
                             })}
                         />
-                        <input
+                        <textarea
                             placeholder="VI"
-                            type="text"
                             value={newQuestion.vi.explanation}
                             onChange={(e) => setNewQuestion({
                                 ...newQuestion,
@@ -559,31 +546,30 @@ const QuestionPage = () => {
                         Delete
                     </button>
                     <div className='question'>
-                        <a
+                        <div
                             className='cursor-pointer'
                             onClick={(e) => selectDataType(e, qIndex, -1, q.question)}
                             style={{
                                 display: selectedData.qIndex === qIndex && selectedData.aIndex === -1 ? 'none' : 'block'
                             }}
                         >
-                            <strong>Question {q.id}:</strong> {q.question}
-                        </a>
+                            <strong>Question {q.id}: </strong>
+                            <div className='ml-2' dangerouslySetInnerHTML={{ __html: formatText(q.question) }} />
+                        </div>
                         {selectedData.qIndex === qIndex && selectedData.aIndex === -1 && (
-                            <input
-                                type="text"
+                            <textarea
                                 value={selectedData.value}
                                 onChange={(e) => setSelectedData({ ...selectedData, value: e.target.value })}
                                 placeholder="Type your answer here"
                             />
                         )}
                     </div>
-                    <div className='answers'>
+                    <div className='answers ml-2'>
                         <ul className='answers-list'>
                             {q.answers.map((answer, aIndex) => (
                                 <div key={aIndex}>
                                     {selectedData.qIndex === qIndex && selectedData.aIndex === aIndex ? (
-                                        <input
-                                            type="text"
+                                        <textarea
                                             value={selectedData.value}
                                             onChange={(e) =>
                                                 setSelectedData({ ...selectedData, value: e.target.value })
@@ -591,7 +577,7 @@ const QuestionPage = () => {
                                             placeholder="Type your answer here"
                                         />
                                     ) : (
-                                        <a
+                                        <div
                                             className='cursor-pointer'
                                             onClick={(e) => selectDataType(e, qIndex, aIndex, answer)}
                                         >
@@ -615,29 +601,27 @@ const QuestionPage = () => {
                                                             : 'normal'
                                                 }}
                                             >
-                                                {aIndex + 1}. {answer}
+                                                {aIndex + 1}. <span dangerouslySetInnerHTML={{ __html: formatText(answer) }} />
                                             </li>
-                                        </a>
+                                        </div>
                                     )}
                                 </div>
                             ))}
                         </ul>
                     </div>
-                    <div className='explanation'>
+                    <div className='explanation ml-2'>
                         <strong>Explanation:</strong>
-                        <a
-                            href="#"
+                        <div
+                            className='cursor-pointer'
                             onClick={(e) => selectDataType(e, qIndex, -2, q.explanation)}
                             style={{
                                 display:
                                     selectedData.qIndex === qIndex && selectedData.aIndex === -2 ? 'none' : 'block'
                             }}
-                        >
-                            {q.explanation}
-                        </a>
+                            dangerouslySetInnerHTML={{ __html: formatText(q.explanation) }}
+                        />
                         {selectedData.qIndex === qIndex && selectedData.aIndex === -2 && (
-                            <input
-                                type="text"
+                            <textarea
                                 value={selectedData.value}
                                 onChange={(e) =>
                                     setSelectedData({ ...selectedData, value: e.target.value })
@@ -661,7 +645,5 @@ const QuestionPage = () => {
         </div>
     );
 };
-
-
 
 export default QuestionPage;
