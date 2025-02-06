@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
+import Cookies from 'js-cookie';
 
-const baseURL = 'http://127.0.0.1:8000/';
+const baseURL = 'http://127.0.0.1:8000/api/';
 
 class ApiClient {
     private client: AxiosInstance;
@@ -12,38 +13,45 @@ class ApiClient {
                 'Content-Type': 'application/json'
             }
         });
+
+        this.client.interceptors.response.use(
+            response => response,
+            error => {
+                if (error.response.status === 401) {
+                    Cookies.remove('admin_token');
+                    Cookies.remove('admin_expired');
+
+                    if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+                        window.location.href = '/admin/login';
+                    }
+                }
+                return Promise.reject(error);
+            }
+        );       
     }
 
     public setHeader(name: string, value: string): void {
         this.client.defaults.headers[name] = value;
     }
 
-    private handleResponse<T>(response: { data: any }): T {
-        if (response.data.status === 'error') {
-            throw new Error(response.data.message || 'An error occurred');
-        }
-
-        return response.data;
-    }
-
     public async get<T>(url: string, params?: any): Promise<T> {
         const response = await this.client.get<T>(url, { params });
-        return this.handleResponse(response);
+        return response.data;
     }
 
     public async post<T>(url: string, data: any): Promise<T> {
         const response = await this.client.post<T>(url, data);
-        return this.handleResponse(response);
+        return response.data;
     }
 
     public async put<T>(url: string, data: any): Promise<T> {
         const response = await this.client.put<T>(url, data);
-        return this.handleResponse(response);
+        return response.data;
     }
 
-    public async delete<T>(url: string): Promise<T> {
-        const response = await this.client.delete<T>(url);
-        return this.handleResponse(response);
+    public async delete<T>(url: string, data: any): Promise<T> {
+        const response = await this.client.delete<T>(url, { data });
+        return response.data;
     }
 }
 

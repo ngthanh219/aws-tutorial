@@ -21,12 +21,11 @@ export default function LoginPage() {
                 password
             });
 
-            Cookies.set('admin_token', response.token);
-            Cookies.set('admin_expired', response.expired);
+            Cookies.set('admin_token', response.data.token);
+            Cookies.set('admin_expired', response.data.expired);
             window.location.href = '/admin/question';
         } catch (error: any) {
             setError('Invalid username or password.');
-            // error.message || 'Failed to add question. Please try again later.'
         } finally {
             setLoading(false);
         }

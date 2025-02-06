@@ -36,7 +36,7 @@ body {
     margin-bottom: 20px;
     border-radius: 5px;
     background-color: #f9f9f9;
-    line-height: 30px;
+    line-height: 25px;
 }
 
 .question {
@@ -44,8 +44,12 @@ body {
 }
 
 .answers {
-    margin-top: 30px;
-    margin-bottom: 30px;
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.answer-item {
+    margin-bottom: 10px;
 }
 
 .explanation {
@@ -59,7 +63,7 @@ body {
 }
 
 .li {
-    margin-bottom: 4px;
+    margin-bottom: 5px;
 }
 
 .btn {
@@ -71,7 +75,7 @@ body {
 }
 
 .btn-sm {
-    padding: 0px 10px;
+    padding: 5px 10px;
     font-size: 12px;
 }
 
@@ -211,4 +215,53 @@ textarea {
     background-color: #dc3545;
     color: white;
     border-color: #dc3545;
+}
+
+@media (max-width: 1200px) {
+    .filter.sticky {
+        padding: 2px;
+        margin-bottom: 5px;
+    }
+
+    .wrapper {
+        padding: 10px;
+    }
+
+    .question-container {
+        padding: 5px;
+    }
+
+    .question {
+        font-size: 16px;
+    }
+
+    .question-name, .answers, .answer-item, .explanation {
+        font-size: 14px;
+    }
+
+    .btn {
+        margin-bottom: 5px;
+    }
+
+    .pagination, .pagination .btn {
+        font-size: 12px;
+    }
+
+    .pagination .pagin-text {
+        display: none;
+    }
+
+    .pagination .page-input input {
+        width: 30px;
+    }
+
+    .search input {
+        margin: 0 5px;
+    }
+
+    .alert {
+        padding: 5px 15px;
+        font-size: 14px;
+    }
+
 }

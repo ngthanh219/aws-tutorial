@@ -3,15 +3,23 @@
 import React from 'react';
 import Cookies from 'js-cookie';
 import { useRouter, usePathname } from 'next/navigation';
+import autheService from '@/src/services/authService';
 
 const Header: React.FC = () => {
     const router = useRouter();
 
-    const logout = (event :any) => {
+    const logout = async (event :any) => {
         event.preventDefault();
-        Cookies.remove('admin_token');
-        Cookies.remove('admin_expired');
-        router.push('/admin/login');
+
+        try {
+            const response = await autheService.adminLogout({});
+        } catch (error: any) {
+            console.error(error);
+        } finally {
+            Cookies.remove('admin_token');
+            Cookies.remove('admin_expired');
+            router.push('/admin/login');
+        }
     };
 
     return (

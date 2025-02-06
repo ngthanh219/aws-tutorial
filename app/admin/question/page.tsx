@@ -8,6 +8,7 @@ import { Pagination } from '@/src/types/pagination';
 import { Language } from '@/src/types/language';
 import Alert from '@/src/components/ui/notification/alert';
 import { IAlert } from '@/src/types/alert';
+import { handleApiError } from '@/src/utils/handleApi';
 
 const QuestionPage = () => {
     const [loading, setLoading] = useState(true);
@@ -57,15 +58,15 @@ const QuestionPage = () => {
         getQuestions();
     }, [language, pagination.page, pagination.perPage, keySearch]);
 
-    const setPageData = (response: any) => {
+    const setPageData = (data: any) => {
         setPagination({
-            page: response.current_page,
-            perPage: response.per_page,
-            total: response.total,
-            totalPages: response.total_pages
+            page: data.current_page,
+            perPage: data.per_page,
+            total: data.total,
+            totalPages: data.total_pages
         });
 
-        setQuestions(response.data);
+        setQuestions(data.list);
     }
 
     const getQuestions = async () => {
@@ -81,12 +82,11 @@ const QuestionPage = () => {
             }
 
             const response = await questionService.getQuestions(params);
-
-            setPageData(response);
+            setPageData(response.data);
         } catch (error: any) {
             setIsAlert({
                 type: 'error',
-                message: error.message || 'Failed to fetch questions. Please try again later.'
+                message: handleApiError(error.response)
             });
         } finally {
             setLoading(false);
@@ -157,7 +157,7 @@ const QuestionPage = () => {
             setSelectedData({
                 qIndex: qIndex,
                 aIndex: aIndex,
-                value: value
+                value: formatText(value, true)
             });
         }
 
@@ -170,14 +170,13 @@ const QuestionPage = () => {
         setLoading(true);
 
         try {
-            const response = await questionService.updateAnswer({
-                question_id: questions[qIndex].id,
+            const response = await questionService.updateAnswer(questions[qIndex].id, {
                 answer_id: aIndex,
                 language: language,
                 page: pagination.page,
                 per_page: pagination.perPage,
             });
-            setPageData(response);
+            setPageData(response.data);
             setIsAlert({
                 type: 'success',
                 message: 'Update answer successfully!'
@@ -185,26 +184,34 @@ const QuestionPage = () => {
         } catch (error: any) {
             setIsAlert({
                 type: 'error',
-                message: error.message || 'Failed to update answer. Please try again later.'
+                message: handleApiError(error.response)
             });
         } finally {
             setLoading(false);
         }
     }
 
+    const formatText = (text: string, reverse: boolean = false) => {
+        if (!text) return '';
+        if (reverse) {
+            return text.split('<br/>').map(line => line.trim()).join('\n');
+        }
+
+        return text.split('\n').map(line => line.trim()).join('<br/>');
+    };
+
     const updateText = async () => {
         try {
             setLoading(true);
-            const response = await questionService.updateText({
-                question_id: questions[selectedData.qIndex].id,
+            const response = await questionService.updateQuestionText(questions[selectedData.qIndex].id, {
                 answer_id: selectedData.aIndex,
-                value: selectedData.value,
+                value: formatText(selectedData.value),
                 language: language,
                 page: pagination.page,
                 per_page: pagination.perPage,
             });
 
-            setPageData(response);
+            setPageData(response.data);
             setSelectedData({
                 qIndex: -1,
                 aIndex: -1,
@@ -217,7 +224,7 @@ const QuestionPage = () => {
         } catch (error: any) {
             setIsAlert({
                 type: 'error',
-                message: error.message || 'Failed to update text. Please try again later.'
+                message: handleApiError(error.response)
             });
         } finally {
             setLoading(false);
@@ -264,13 +271,12 @@ const QuestionPage = () => {
         setLoading(true);
 
         try {
-            const response = await questionService.deleteQuestion({
-                question_id: id,
+            const response = await questionService.deleteQuestion(id, {
                 page: pagination.page,
                 per_page: pagination.perPage,
             });
 
-            setPageData(response);
+            setPageData(response.data);
             setIsAlert({
                 type: 'success',
                 message: 'Delete question successfully!'
@@ -278,7 +284,7 @@ const QuestionPage = () => {
         } catch (error: any) {
             setIsAlert({
                 type: 'error',
-                message: error.message || 'Failed to delete question. Please try again later.'
+                message: 'Failed to delete question. Please try again later.'
             });
         } finally {
             setLoading(false);
@@ -338,13 +344,33 @@ const QuestionPage = () => {
         });
     }
 
+    const formatNewQuestion = (question: INewQuestion) => {
+        const formatText = (text: string) => text.split('\n').map(line => line.trim()).join('<br/>');
+
+        return {
+            en: {
+                ...question.en,
+                question: formatText(question.en.question),
+                answers: question.en.answers.map(formatText),
+                explanation: formatText(question.en.explanation)
+            },
+            vi: {
+                ...question.vi,
+                question: question.vi.question || formatText(question.en.question),
+                answers: question.vi.answers.map((answer, index) => answer || formatText(question.en.answers[index])),
+                explanation: question.vi.explanation || formatText(question.en.explanation)
+            }
+        };
+    };
+
     const addQuestion = async (e: any) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const response = await questionService.addQuestion(newQuestion);
-            setPageData(response);
+            const formattedQuestion = formatNewQuestion(newQuestion);
+            const response = await questionService.addQuestion(formattedQuestion);
+            setPageData(response.data);
             setIsAlert({
                 type: 'success',
                 message: 'Add question successfully!'
@@ -371,18 +397,12 @@ const QuestionPage = () => {
         } catch (error: any) {
             setIsAlert({
                 type: 'error',
-                message: error.message || 'Failed to add question. Please try again later.'
+                message: handleApiError(error.response)
             });
         } finally {
             setLoading(false);
         }
     }
-
-    const formatText = (text: string) => {
-        return text.split('\n').map((line, index) =>
-            line ? `<span key=${index}>${line.trim()}</span><br/>` : '<br/>'
-        ).join('');
-    };
 
     return (
         <div className='wrapper'>
@@ -390,25 +410,27 @@ const QuestionPage = () => {
             <Alert type={isAlert.type} message={isAlert.message} />
             <div className="filter sticky">
                 <div className="actions">
-                    <button className={`btn btn-${isAddQuestion ? 'danger' : 'primary'} mr-2`} onClick={() => openNewQuestionForm()}>
-                        {isAddQuestion ? 'Cancel new question' : 'New question'}
+                    <button className={`btn btn-sm btn-${isAddQuestion ? 'danger' : 'primary'} mr-2`} onClick={() => openNewQuestionForm()}>
+                        {isAddQuestion ? 'Cancel new' : 'New'}
                     </button>
 
-                    <button className='btn btn-default mr-2' onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}>
-                        Convert to {language === 'en' ? 'VI' : 'EN'}
+                    <button className='btn btn-sm btn-default mr-2' onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}>
+                        {language === 'en' ? 'VI' : 'EN'}
                     </button>
 
-                    <button className={`btn btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`} onClick={() => editAnswer()}>
-                        {isEditAnswer ? 'Stop edit answer' : 'Edit answer'}
+                    <button className={`btn btn-sm btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`} onClick={() => editAnswer()}>
+                        {isEditAnswer ? 'Cancel answer' : 'Answer'}
                     </button>
 
-                    <button className={`btn btn-${isEditText ? 'danger' : 'primary'} mr-2`} onClick={() => editText()}>
-                        {isEditText ? 'Stop edit text' : 'Edit text'}
+                    <button className={`btn btn-sm btn-${isEditText ? 'danger' : 'primary'} mr-2`} onClick={() => editText()}>
+                        {isEditText ? 'Cancel text' : 'Text'}
                     </button>
                 </div>
 
                 <div className="pagination">
-                    Limit
+                    <span className="pagin-text">
+                        Limit
+                    </span>
                     <select className='btn btn-default' value={pagination.perPage} onChange={(e) => setLimit(e)}>
                         <option value={1}>1</option>
                         <option value={2}>2</option>
@@ -418,13 +440,13 @@ const QuestionPage = () => {
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                     </select>
-                    <button className={`btn btn-default ${pagination.page === 1 ? 'disabled' : ''}`} onClick={() => prevPage()}>
+                    <button className={`btn btn-sm btn-default ${pagination.page === 1 ? 'disabled' : ''}`} onClick={() => prevPage()}>
                         {"<"}
                     </button>
                     <div className='page-input'>
-                        Page <input type="text" onChange={(e) => filterPage(e)} value={pagination.page} /> of {pagination.totalPages}
+                        <span className="pagin-text">Page</span> <input type="text" onChange={(e) => filterPage(e)} value={pagination.page} /> / {pagination.totalPages}
                     </div>
-                    <button className={`btn btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`} onClick={() => nextPage()}>
+                    <button className={`btn btn-sm btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`} onClick={() => nextPage()}>
                         {">"}
                     </button>
                     <div className="search">
@@ -466,7 +488,7 @@ const QuestionPage = () => {
                         <ul className="answers-list">
                             {newQuestion.en.answers.map((answer, index) => (
                                 <div key={index} className='flex items-center'>
-                                    <a href="#" className='btn btn-danger btn-sm cursor-pointer h-8 mr-2' onClick={(e) => { removeAnswer(e, index) }}>
+                                    <a href="#" className='btn btn-danger cursor-pointer mr-2' onClick={(e) => { removeAnswer(e, index) }}>
                                         -
                                     </a>
                                     <input
@@ -504,7 +526,7 @@ const QuestionPage = () => {
                                 </div>
                             ))}
                         </ul>
-                        <a className='btn btn-primary btn-sm cursor-pointer' onClick={(e) => addAnswer(e)}>
+                        <a className='btn btn-primary cursor-pointer' onClick={(e) => addAnswer(e)}>
                             +
                         </a>
                     </div>
@@ -554,7 +576,7 @@ const QuestionPage = () => {
                             }}
                         >
                             <strong>Question {q.id}: </strong>
-                            <div className='ml-2' dangerouslySetInnerHTML={{ __html: formatText(q.question) }} />
+                            <div className='question-name ml-2' dangerouslySetInnerHTML={{ __html: q.question }} />
                         </div>
                         {selectedData.qIndex === qIndex && selectedData.aIndex === -1 && (
                             <textarea
@@ -601,7 +623,7 @@ const QuestionPage = () => {
                                                             : 'normal'
                                                 }}
                                             >
-                                                {aIndex + 1}. <span dangerouslySetInnerHTML={{ __html: formatText(answer) }} />
+                                                {aIndex + 1}. <span dangerouslySetInnerHTML={{ __html: answer }} />
                                             </li>
                                         </div>
                                     )}
@@ -618,7 +640,7 @@ const QuestionPage = () => {
                                 display:
                                     selectedData.qIndex === qIndex && selectedData.aIndex === -2 ? 'none' : 'block'
                             }}
-                            dangerouslySetInnerHTML={{ __html: formatText(q.explanation) }}
+                            dangerouslySetInnerHTML={{ __html: q.explanation }}
                         />
                         {selectedData.qIndex === qIndex && selectedData.aIndex === -2 && (
                             <textarea
