@@ -71,7 +71,7 @@ const QuestionPage = () => {
 
     const getQuestions = async () => {
         try {
-            let params: { page: number; per_page: number; language: Language; key?: string } = {
+            const params: { page: number; per_page: number; language: Language; key?: string } = {
                 page: pagination.page,
                 per_page: pagination.perPage,
                 language: language
