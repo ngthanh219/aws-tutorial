@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Cookies from 'js-cookie';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import autheService from '@/src/services/authService';
 
 const Header: React.FC = () => {
@@ -12,7 +12,7 @@ const Header: React.FC = () => {
         event.preventDefault();
 
         try {
-            const response = await autheService.adminLogout({});
+            await autheService.adminLogout({});
         } catch (error: any) {
             console.error(error);
         } finally {

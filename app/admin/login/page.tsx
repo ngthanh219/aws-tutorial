@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Cookies from 'js-cookie';
 import autheService from '@/src/services/authService';
 import SpinningLoading from '@/src/components/ui/loading/spinningLoading';
@@ -25,6 +25,7 @@ export default function LoginPage() {
             Cookies.set('admin_expired', response.data.expired);
             window.location.href = '/admin/question';
         } catch (error: any) {
+            console.log(error);
             setError('Invalid username or password.');
         } finally {
             setLoading(false);

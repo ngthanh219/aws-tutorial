@@ -14,9 +14,9 @@ const adminLogout = async (request: any): Promise<any> => {
     return await apiClient.post<any[]>(adminPrefix + 'logout', request);
 };
 
-const autheService = {
+const authService = {
     adminLogin,
     adminLogout,
 };
 
-export default autheService;
+export default authService;

@@ -1,5 +1,5 @@
 import { IAlert } from '@/src/types/alert';
-import React, { useEffect } from 'react';
+import React from 'react';
 
 const Alert: React.FC<IAlert> = ({ type, message }) => {
     return message !== '' ? (

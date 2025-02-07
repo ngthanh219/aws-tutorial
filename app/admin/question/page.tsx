@@ -71,7 +71,7 @@ const QuestionPage = () => {
 
     const getQuestions = async () => {
         try {
-            let params = {
+            let params: { page: number; per_page: number; language: Language; key?: string } = {
                 page: pagination.page,
                 per_page: pagination.perPage,
                 language: language
@@ -284,7 +284,7 @@ const QuestionPage = () => {
         } catch (error: any) {
             setIsAlert({
                 type: 'error',
-                message: 'Failed to delete question. Please try again later.'
+                message: handleApiError(error.response)
             });
         } finally {
             setLoading(false);
