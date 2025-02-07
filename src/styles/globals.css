@@ -110,6 +110,16 @@ body {
     background-color: #c82333;
 }
 
+.btn-warning {
+    background-color: #ffc107;
+    color: #fff;
+    transition: background-color 0.3s;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
 .btn.disabled {
     cursor: not-allowed;
     opacity: 0.5;
@@ -239,15 +249,7 @@ textarea {
         font-size: 14px;
     }
 
-    .btn {
-        margin-bottom: 5px;
-    }
-
-    .pagination, .pagination .btn {
-        font-size: 12px;
-    }
-
-    .pagination .pagin-text {
+    .mobile-text {
         display: none;
     }
 

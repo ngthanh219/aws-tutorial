@@ -404,31 +404,79 @@ const QuestionPage = () => {
         }
     }
 
+    const uploadQuestions = async (e: any) => {
+        e.preventDefault();
+        if (confirm('Are you sure you want to upload the questions?')) {
+            setLoading(true);
+
+            try {
+                await questionService.uploadQuestions();
+            } catch (error: any) {
+                setIsAlert({
+                    type: 'error',
+                    message: handleApiError(error.response)
+                });
+            } finally {
+                setLoading(false);
+            }
+        }
+    }
+
+    const downloadQuestions = async (e: any) => {
+        e.preventDefault();
+
+        if (confirm('Are you sure you want to download the questions?')) {
+            setLoading(true);
+
+            try {
+                const response = await questionService.downloadQuestions();
+                const links = response.data;
+
+                links.forEach((link: string) => console.log(link));
+            } catch (error: any) {
+                setIsAlert({
+                    type: 'error',
+                    message: handleApiError(error.response)
+                });
+            } finally {
+                setLoading(false);
+            }
+        }
+    }
+
     return (
         <div className='wrapper'>
             {loading && <SpinningLoading />}
             <Alert type={isAlert.type} message={isAlert.message} />
             <div className="filter sticky">
                 <div className="actions">
-                    <button className={`btn btn-sm btn-${isAddQuestion ? 'danger' : 'primary'} mr-2`} onClick={() => openNewQuestionForm()}>
-                        {isAddQuestion ? 'Cancel new' : 'New'}
-                    </button>
-
                     <button className='btn btn-sm btn-default mr-2' onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}>
                         {language === 'en' ? 'VI' : 'EN'}
                     </button>
 
-                    <button className={`btn btn-sm btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`} onClick={() => editAnswer()}>
-                        {isEditAnswer ? 'Cancel answer' : 'Answer'}
+                    <button className={`mobile-text btn btn-sm btn-${isAddQuestion ? 'danger' : 'primary'} mr-2`} onClick={() => openNewQuestionForm()}>
+                        {isAddQuestion ? 'Cancel create new question' : 'Create new question'}
                     </button>
 
-                    <button className={`btn btn-sm btn-${isEditText ? 'danger' : 'primary'} mr-2`} onClick={() => editText()}>
-                        {isEditText ? 'Cancel text' : 'Text'}
+                    <button className={`mobile-text btn btn-sm btn-${isEditAnswer ? 'danger' : 'primary'} mr-2`} onClick={() => editAnswer()}>
+                        {isEditAnswer ? 'Cancel edit answer' : 'Editing Answer'}
+                    </button>
+
+                    <button className={`mobile-text btn btn-sm btn-${isEditText ? 'danger' : 'primary'} mr-2`} onClick={() => editText()}>
+                        {isEditText ? 'Cancel edit text' : 'Editing Text'}
+                    </button>
+
+                    <button className="mobile-text btn btn-sm btn-warning mr-2" onClick={(e) => uploadQuestions(e)}>
+                        Upload questions
+                    </button>
+
+                    <button className="mobile-text btn btn-sm btn-warning mr-2" onClick={(e) => downloadQuestions(e)}>
+                        Download questions
                     </button>
                 </div>
 
                 <div className="pagination">
-                    <span className="pagin-text">
+                    <span className="mobile-text btn-sm">
                         Limit
                     </span>
                     <select className='btn btn-default' value={pagination.perPage} onChange={(e) => setLimit(e)}>
@@ -444,7 +492,7 @@ const QuestionPage = () => {
                         {"<"}
                     </button>
                     <div className='page-input'>
-                        <span className="pagin-text">Page</span> <input type="text" onChange={(e) => filterPage(e)} value={pagination.page} /> / {pagination.totalPages}
+                        <span className="mobile-text">Page</span> <input type="text" onChange={(e) => filterPage(e)} value={pagination.page} /> / {pagination.totalPages}
                     </div>
                     <button className={`btn btn-sm btn-default ${pagination.page === pagination.totalPages ? 'disabled' : ''}`} onClick={() => nextPage()}>
                         {">"}
@@ -558,7 +606,7 @@ const QuestionPage = () => {
             {questions.map((q, qIndex) => (
                 <div key={q.id} className='question-container'>
                     <button
-                        className='btn btn-danger btn-sm float-right'
+                        className='btn btn-danger btn-sm float-right mobile-text'
                         onClick={(e) => {
                             if (confirm('Are you sure you want to delete this question?')) {
                                 deleteQuestion(e, q.id);
