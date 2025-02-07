@@ -451,7 +451,7 @@ const QuestionPage = () => {
             <div className="filter sticky">
                 <div className="actions">
                     <button className='btn btn-sm btn-default mr-2' onClick={(e) => convertLanguage(e, language === 'en' ? 'vi' : 'en')}>
-                        {language === 'en' ? 'VI' : 'EN'}
+                        {language === 'en' ? 'EN' : 'VI'}
                     </button>
 
                     <button className={`mobile-text btn btn-sm btn-${isAddQuestion ? 'danger' : 'primary'} mr-2`} onClick={() => openNewQuestionForm()}>
