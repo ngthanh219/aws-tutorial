@@ -4,6 +4,7 @@ import React from 'react';
 import Cookies from 'js-cookie';
 import { useRouter } from 'next/navigation';
 import autheService from '@/src/services/authService';
+import Link from 'next/link';
 
 const Header: React.FC = () => {
     const router = useRouter();
@@ -27,7 +28,8 @@ const Header: React.FC = () => {
             <h1>AWS SAA-C03</h1>
             <nav>
                 <ul style={navListStyle}>
-                    <li style={navItemStyle}><a href="/admin/question">Question</a></li>
+                    <Link href="/admin/question" style={navItemStyle}>Question</Link>
+                    <Link href="/admin/exam" style={navItemStyle}>Exam</Link>
                     <li style={navItemStyle}><a onClick={logout} href="/admin/logout">Logout</a></li>
                 </ul>
             </nav>

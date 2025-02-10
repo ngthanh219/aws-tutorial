@@ -624,7 +624,7 @@ const QuestionPage = () => {
                             }}
                         >
                             <strong>Question {q.id}: </strong>
-                            <div className='question-name ml-2' dangerouslySetInnerHTML={{ __html: q.question }} />
+                            <div className='question-name ml-2 mt-2' dangerouslySetInnerHTML={{ __html: q.question }} />
                         </div>
                         {selectedData.qIndex === qIndex && selectedData.aIndex === -1 && (
                             <textarea
