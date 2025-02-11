@@ -38,16 +38,14 @@ const QuestionPage = () => {
             id: 0,
             question: '',
             answers: [''],
-            correct_answer: 0,
-            selected_answer: null,
+            correct_answer: [0],
             explanation: 'Updating'
         },
         vi: {
             id: 0,
             question: '',
             answers: [''],
-            correct_answer: 0,
-            selected_answer: null,
+            correct_answer: [0],
             explanation: 'Đang cập nhật'
         }
     };
@@ -161,7 +159,7 @@ const QuestionPage = () => {
             });
         }
 
-        if (isEditAnswer && aIndex !== -1 && aIndex !== -2 && aIndex !== questions[qIndex].correct_answer) {
+        if (isEditAnswer && aIndex !== -1 && aIndex !== -2) {
             updateAnswer(qIndex, aIndex);
         }
     }
@@ -344,6 +342,26 @@ const QuestionPage = () => {
         });
     }
 
+    const selectedNewAnswer = (index: number) => {
+        const isChecked = newQuestion.en.correct_answer.includes(index);
+
+        setNewQuestion({
+            ...newQuestion,
+            en: {
+                ...newQuestion.en,
+                correct_answer: isChecked
+                    ? newQuestion.en.correct_answer.filter((i) => i !== index)
+                    : [...newQuestion.en.correct_answer, index]
+            },
+            vi: {
+                ...newQuestion.vi,
+                correct_answer: isChecked
+                    ? newQuestion.vi.correct_answer.filter((i) => i !== index)
+                    : [...newQuestion.vi.correct_answer, index]
+            }
+        });
+    }
+
     const formatNewQuestion = (question: INewQuestion) => {
         const formatText = (text: string) => text.split('\n').map(line => line.trim()).join('<br/>');
 
@@ -361,7 +379,7 @@ const QuestionPage = () => {
                 explanation: question.vi.explanation || formatText(question.en.explanation)
             }
         };
-    };
+    }
 
     const addQuestion = async (e: any) => {
         e.preventDefault();
@@ -380,16 +398,14 @@ const QuestionPage = () => {
                     id: 0,
                     question: '',
                     answers: [''],
-                    correct_answer: 0,
-                    selected_answer: null,
+                    correct_answer: [0],
                     explanation: ''
                 },
                 vi: {
                     id: 0,
                     question: '',
                     answers: [''],
-                    correct_answer: 0,
-                    selected_answer: null,
+                    correct_answer: [0],
                     explanation: ''
                 }
             });
@@ -541,12 +557,9 @@ const QuestionPage = () => {
                                     </a>
                                     <input
                                         type="radio"
-                                        checked={newQuestion.en.correct_answer === index}
-                                        onChange={() => setNewQuestion({
-                                            ...newQuestion,
-                                            en: { ...newQuestion.en, correct_answer: index },
-                                            vi: { ...newQuestion.vi, correct_answer: index }
-                                        })}
+                                        checked={newQuestion.en.correct_answer.includes(index)}
+                                        onChange={() => {}}
+                                        onClick={() => selectedNewAnswer(index)}
                                         className='mr-2 cursor-pointer'
                                     />
                                     <textarea
@@ -651,26 +664,7 @@ const QuestionPage = () => {
                                             className='cursor-pointer'
                                             onClick={(e) => selectDataType(e, qIndex, aIndex, answer)}
                                         >
-                                            <li
-                                                className={`answer-item ${aIndex === q.correct_answer
-                                                    ? 'correct'
-                                                    : aIndex === q.selected_answer
-                                                        ? 'selected'
-                                                        : ''
-                                                    }`}
-                                                style={{
-                                                    color:
-                                                        aIndex === q.correct_answer
-                                                            ? 'red'
-                                                            : aIndex === q.selected_answer
-                                                                ? 'orange'
-                                                                : 'inherit',
-                                                    fontWeight:
-                                                        aIndex === q.correct_answer || aIndex === q.selected_answer
-                                                            ? 'bold'
-                                                            : 'normal'
-                                                }}
-                                            >
+                                            <li className={`answer-item ${q.correct_answer.includes(aIndex) ? 'bold text-success' : ''}`}>
                                                 {aIndex + 1}. <span dangerouslySetInnerHTML={{ __html: answer }} />
                                             </li>
                                         </div>

@@ -16,8 +16,9 @@ const ExamPage = () => {
     const [multiQuestion, setMultiQuestion] = useState<INewQuestion>();
     const [question, setQuestion] = useState<Question>();
     const [currentLanguage, setCurrentLanguage] = useState('en');
-    const [correctAnswer, setCorrectAnswer] = useState(Boolean);
-    const [selectedAnswer, setSelectedAnswer] = useState<number>(-1);
+    const [correctAnswer, setCorrectAnswer] = useState(false);
+    const [selectedAnswer, setSelectedAnswer] = useState<number[]>([]);
+    const [isSubmitAnswer, setIsSubmitAnswer] = useState(false);
     const [isAlert, setIsAlert] = useState<IAlert>({
         type: 'success',
         message: ''
@@ -85,11 +86,31 @@ const ExamPage = () => {
 
     const selectAnswer = (e: any, index: number) => {
         if (!correctAnswer) {
-            setSelectedAnswer(index);
-        }
+            setSelectedAnswer(prevSelected =>
+                prevSelected.includes(index)
+                    ? prevSelected.filter(answer => answer !== index)
+                    : [...prevSelected, index]
+            );
 
-        if (question?.correct_answer === index) {
-            setCorrectAnswer(true);
+            if (isSubmitAnswer) {
+                setIsSubmitAnswer(false);
+            }
+        }
+    }
+
+    const checkAnswer = () => {
+        if (selectedAnswer.length === 0) {
+            setIsAlert({
+                type: 'error',
+                message: 'Please select an answer.'
+            });
+        } else {
+            setIsSubmitAnswer(true);
+
+            if (question?.correct_answer && selectedAnswer.length >= question.correct_answer.length) {
+                const isCorrect = selectedAnswer.every(answer => question?.correct_answer.includes(answer));
+                setCorrectAnswer(isCorrect);
+            }
         }
     }
 
@@ -105,7 +126,8 @@ const ExamPage = () => {
                 setBtnText('Restart');
             }
 
-            setSelectedAnswer(-1);
+            setSelectedAnswer([]);
+            setIsSubmitAnswer(false);
             setCorrectAnswer(false);
 
             setExamData({
@@ -145,22 +167,27 @@ const ExamPage = () => {
                         </div>
                         <span>{examData.examQuestions < 1 ? 0 : examData.examQuestions} / {examData.totalQuestions} questions</span>
                     </div>
+                    {selectedAnswer.length > 0 && correctAnswer && (
+                        <div className="text-center mb-2">
+                            <button className='btn btn-primary' onClick={nextQuestion}>Next</button>
+                        </div>
+                    )}
                     <button className='btn btn-outline-primary btn-sm float-right' onClick={convertLanguage}>
                         {currentLanguage === 'en' ? 'EN' : 'VI'}
                     </button>
                     <div className="question">
                         <div>
-                            <strong onDoubleClick={convertLanguage}>Question {question?.id}: </strong>
+                            <strong onDoubleClick={convertLanguage}>Question: </strong>
                             <div className="question-name ml-2 mt-1">{formatText(question?.question || '', true)}</div>
                         </div>
                     </div>
-                    <div className="answers ml-2">
+                    <div className="answers ml-2 mt-2">
                         <ul className="answers-list">
                             <div>
                                 <div className="cursor-pointer">
                                     {question?.answers.map((answer, index) => (
                                         <li key={index} className="answer-item">
-                                            <a className={`cursor-pointer ${selectedAnswer === index ? (index === question?.correct_answer ? 'bold text-success' : 'bold text-error') : ''}`} onClick={(e) => selectAnswer(e, index)}>
+                                            <a className={`cursor-pointer ${selectedAnswer.includes(index) ? 'bold text-success' : ''}`} onClick={(e) => selectAnswer(e, index)}>
                                                 {index + 1}. <span>{formatText(answer, true)}</span>
                                             </a>
                                         </li>
@@ -169,14 +196,24 @@ const ExamPage = () => {
                             </div>
                         </ul>
                     </div>
-                    {selectedAnswer > -1 && (
+                    {!correctAnswer && (
+                        <div className="mb-2">
+                            <button className='btn btn-primary' onClick={checkAnswer}>Submit</button>
+                        </div>
+                    )}
+                    {isSubmitAnswer && (
                         <div className="correct-answer-wrapper">
                             <div className="correct-answer">
                                 <strong>Correct answer: </strong>
-                                {correctAnswer ?
-                                    (<p className='ml-2 mt-1 alert-success'>{(question?.correct_answer || 0) + 1} . {question?.answers[question?.correct_answer]}</p>)
-                                    : (<p className='ml-2 mt-1 alert-danger'>Your answer is incorrect.</p>)
-                                }
+                                {correctAnswer ? (
+                                    <div className='ml-2 mt-1 alert-success'>
+                                        {question?.correct_answer.map((ans, idx) => (
+                                            <p key={idx}>{ans + 1}. {question?.answers[ans]}</p>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className='ml-2 mt-1 alert-danger'>Your answer is incorrect.</p>
+                                )}
                             </div>
                             {correctAnswer && (
                                 <div className="explanation mt-1">
@@ -184,11 +221,6 @@ const ExamPage = () => {
                                     <div dangerouslySetInnerHTML={{ __html: question?.explanation || '' }} />
                                 </div>
                             )}
-                        </div>
-                    )}
-                    {selectedAnswer > -1 && correctAnswer && (
-                        <div className="text-center mt-2">
-                            <button className='btn btn-primary' onClick={nextQuestion}>Next</button>
                         </div>
                     )}
                 </div>
